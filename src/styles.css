@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@500;700;800;900&family=Manrope:wght@500;600;700;800;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -6,6 +6,22 @@
 
 * {
   box-sizing: border-box;
+}
+
+:root {
+  --spaces-pitch-black: #08090a;
+  --spaces-graphite: #0f1011;
+  --spaces-deep-slate: #161718;
+  --spaces-charcoal: #23252a;
+  --spaces-muted-ash: #323334;
+  --spaces-gunmetal: #383b3f;
+  --spaces-porcelain: #f7f8f8;
+  --spaces-light-steel: #d0d6e0;
+  --spaces-storm-cloud: #8a8f98;
+  --spaces-fog-grey: #62666d;
+  --spaces-neon-lime: #e4f222;
+  --spaces-aether-blue: #5e6ad2;
+  --spaces-warning-red: #eb5757;
 }
 
 html,
@@ -16,8 +32,10 @@ body,
 
 body {
   margin: 0;
-  font-family: Manrope, ui-sans-serif, system-ui, sans-serif;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
   text-rendering: geometricPrecision;
+  background: var(--spaces-pitch-black);
+  color: var(--spaces-porcelain);
 }
 
 button,

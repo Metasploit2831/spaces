@@ -192,12 +192,14 @@ export function SpaceCanvas({ space, onChange, expanded = false }: SpaceCanvasPr
 
   const moveGroup = (group: SpaceGroup, dx: number, dy: number) => {
     const ids = new Set(group.cardIds);
+    const nextCards = space.cards.map((card) => (ids.has(card.id) ? { ...card, x: card.x + dx, y: card.y + dy } : card));
+    const nextBounds = computeBoundingBox(nextCards.filter((card) => ids.has(card.id)));
     update({
       ...space,
       groups: space.groups.map((candidate) =>
-        candidate.id === group.id ? { ...candidate, x: candidate.x + dx, y: candidate.y + dy } : candidate,
+        candidate.id === group.id && nextBounds ? { ...candidate, ...nextBounds } : candidate,
       ),
-      cards: space.cards.map((card) => (ids.has(card.id) ? { ...card, x: card.x + dx, y: card.y + dy } : card)),
+      cards: nextCards,
     });
   };
 
@@ -274,7 +276,7 @@ export function SpaceCanvas({ space, onChange, expanded = false }: SpaceCanvasPr
         ref={canvasRef}
         tabIndex={0}
         className={`relative min-h-0 flex-1 overflow-auto outline-none transition ${
-          dragOver ? "bg-[#10251f] ring-2 ring-inset ring-mint/60" : "bg-zinc-950"
+          dragOver ? "bg-[#11131a] ring-2 ring-inset ring-[#5e6ad2]/45" : "bg-[#08090a]"
         }`}
         onClick={() => canvasRef.current?.focus()}
         onDragOver={(event) => {
@@ -299,13 +301,13 @@ export function SpaceCanvas({ space, onChange, expanded = false }: SpaceCanvasPr
         }}
       >
         <div className={`relative ${expanded ? "h-[1180px] w-[1260px]" : "h-[860px] w-[860px]"}`}>
-          <div className="pointer-events-none absolute inset-0 opacity-80 [background-image:linear-gradient(rgba(255,255,255,0.055)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.055)_1px,transparent_1px)] [background-size:28px_28px]" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_84%_12%,rgba(94,106,210,0.18),transparent_18%),linear-gradient(rgba(255,255,255,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.04)_1px,transparent_1px)] [background-size:auto,28px_28px,28px_28px]" />
 
           {space.cards.length === 0 ? (
-            <div className="absolute left-8 top-8 max-w-[300px] rounded-lg border border-dashed border-zinc-700 bg-zinc-900 p-5 text-zinc-50 shadow-2xl">
-              <Clipboard className="mb-4 text-mint" size={28} />
-              <p className="text-lg font-black">Drop anything here or paste screenshots with Cmd + V</p>
-              <p className="mt-3 text-sm font-semibold text-zinc-400">Text · Images · Links · Files · Screenshots</p>
+            <div className="absolute left-8 top-8 max-w-[300px] rounded-md border border-[#23252a] bg-[#0f1011] p-5 text-[#f7f8f8] shadow-[rgba(0,0,0,0.4)_0px_2px_4px_0px]">
+              <Clipboard className="mb-4 text-[#e4f222]" size={28} />
+              <p className="text-[20px] font-medium tracking-[-0.01em]">Drop anything here or paste screenshots with Cmd + V</p>
+              <p className="mt-3 text-sm font-normal text-[#8a8f98]">Text · Images · Links · Files · Screenshots</p>
             </div>
           ) : null}
 
@@ -372,25 +374,25 @@ export function SpaceCanvas({ space, onChange, expanded = false }: SpaceCanvasPr
 
           {selectionRect && selectionRect.width + selectionRect.height > 4 ? (
             <div
-              className="pointer-events-none absolute z-40 rounded border border-mint/75 bg-mint/15"
+              className="pointer-events-none absolute z-40 rounded-md border border-[#5e6ad2]/70 bg-[#5e6ad2]/15"
               style={{ left: selectionRect.x, top: selectionRect.y, width: selectionRect.width, height: selectionRect.height }}
             />
           ) : null}
 
           {selectedCardIds.length > 1 ? (
-            <div className="sticky left-4 top-3 z-50 inline-flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-[12px] font-bold text-zinc-50 shadow-2xl">
-              <MousePointer2 size={14} className="text-mint" />
+            <div className="sticky left-4 top-3 z-50 inline-flex items-center gap-2 rounded-full border border-[#23252a] bg-[#161718] px-3 py-2 text-[12px] font-medium text-[#f7f8f8] shadow-[rgba(8,9,10,0.6)_0px_4px_32px_0px]">
+              <MousePointer2 size={14} className="text-[#e4f222]" />
               {selectedCardIds.length} selected
-              <button className="rounded-full bg-mint px-2 py-1 text-ink" onClick={groupSelected}>
+              <button className="rounded-full bg-[#e4f222] px-2 py-1 text-[#08090a]" onClick={groupSelected}>
                 <Group size={12} className="mr-1 inline" /> Group
               </button>
-              <button className="rounded-full bg-zinc-800 px-2 py-1 text-zinc-100" onClick={ungroupSelected}>
+              <button className="rounded-full border border-[#23252a] bg-[#0f1011] px-2 py-1 text-[#d0d6e0]" onClick={ungroupSelected}>
                 <Scissors size={12} className="mr-1 inline" /> Ungroup
               </button>
-              <button className="rounded-full bg-coral/15 px-2 py-1 text-coral" onClick={deleteSelection}>
+              <button className="rounded-full border border-[#3a2020] bg-[#241415] px-2 py-1 text-[#eb5757]" onClick={deleteSelection}>
                 <Trash2 size={12} className="mr-1 inline" /> Delete
               </button>
-              <span className="text-zinc-500">Cmd/Ctrl + G</span>
+              <span className="text-[#62666d]">Cmd/Ctrl + G</span>
             </div>
           ) : null}
 

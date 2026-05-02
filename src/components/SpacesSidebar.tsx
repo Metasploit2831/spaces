@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, Home, Maximize2, PanelRightClose, Save, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { PointerEvent, useEffect, useMemo, useState } from "react";
 import {
   createSpace,
   deleteSpace as deleteStoredSpace,
@@ -28,6 +28,30 @@ export function SpacesSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const stored = typeof window !== "undefined" ? window.localStorage.getItem("spaces:sidebar-width") : null;
+    const width = stored ? Number(stored) : 420;
+    return Number.isFinite(width) ? Math.min(680, Math.max(400, width)) : 420;
+  });
+
+  useEffect(() => {
+    window.localStorage.setItem("spaces:sidebar-width", String(sidebarWidth));
+  }, [sidebarWidth]);
+
+  const startResize = (event: PointerEvent<HTMLDivElement>) => {
+    const startX = event.clientX;
+    const startWidth = sidebarWidth;
+    const move = (moveEvent: globalThis.PointerEvent) => {
+      const next = Math.min(680, Math.max(400, startWidth - (moveEvent.clientX - startX)));
+      setSidebarWidth(next);
+    };
+    const stop = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", stop);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", stop);
+  };
 
   useEffect(() => {
     Promise.all([getSpaces(), getActiveSpaceId()]).then(([loaded, activeId]) => {
@@ -115,9 +139,9 @@ export function SpacesSidebar() {
       <button
         data-spaces-root
         onClick={() => setCollapsed(false)}
-        className="fixed right-3 top-1/2 z-[2147483644] flex -translate-y-1/2 items-center gap-2 rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 text-[12px] font-black text-zinc-50 shadow-sidebar"
+        className="fixed right-3 top-1/2 z-[2147483644] flex -translate-y-1/2 items-center gap-2 rounded-md border border-[#23252a] bg-[#161718] px-3 py-2 text-[12px] font-medium tracking-[-0.01em] text-[#f7f8f8] shadow-[rgba(8,9,10,0.6)_0px_4px_32px_0px]"
       >
-        <ChevronRight size={15} className="rotate-180 text-mint" />
+        <ChevronRight size={15} className="rotate-180 text-[#e4f222]" />
         Spaces
       </button>
     );
@@ -129,9 +153,10 @@ export function SpacesSidebar() {
         data-spaces-root
         initial={{ x: 40, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        className={`fixed right-0 top-0 z-[2147483644] flex h-screen w-[410px] flex-col overflow-hidden border-l border-zinc-800 bg-zinc-950 text-zinc-50 shadow-sidebar transition ${
-          dragActive ? "ring-2 ring-inset ring-mint/60" : ""
+        className={`fixed right-0 top-0 z-[2147483644] flex h-screen flex-col overflow-hidden border-l border-[#23252a] bg-[#08090a] text-[#f7f8f8] shadow-[rgba(8,9,10,0.6)_0px_4px_32px_0px] transition ${
+          dragActive ? "ring-2 ring-inset ring-[#5e6ad2]/50" : ""
         }`}
+        style={{ width: sidebarWidth }}
         onDragOver={(event) => {
           event.preventDefault();
           setDragActive(true);
@@ -139,27 +164,33 @@ export function SpacesSidebar() {
         onDragLeave={() => setDragActive(false)}
         onDrop={() => setDragActive(false)}
       >
-        <header className="relative flex h-14 items-center gap-2 border-b border-zinc-800 bg-zinc-950 px-4">
+        <div
+          className="absolute left-0 top-0 h-full w-2 cursor-col-resize bg-transparent"
+          onPointerDown={startResize}
+          title="Resize sidebar"
+        />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_top,rgba(94,106,210,0.12),transparent_55%)]" />
+        <header className="relative flex min-h-[68px] items-center gap-2 border-b border-[#23252a] bg-[#08090a] px-2 py-4 text-[#f7f8f8]">
           {screen === "canvas" ? (
             <IconButton label="Back to Spaces Home" onClick={() => setScreen("home")}>
               <Home size={16} />
             </IconButton>
           ) : (
-            <div className="grid h-8 w-8 place-items-center rounded-md bg-mint text-ink">
+            <div className="grid h-8 w-8 place-items-center rounded-md border border-[#23252a] bg-[#161718] text-[#e4f222]">
               <PanelRightClose size={17} />
             </div>
           )}
 
           {screen === "home" ? (
             <div>
-              <h1 className="text-base font-black tracking-tight text-zinc-50">Spaces</h1>
-              <p className="-mt-0.5 text-[11px] font-semibold text-zinc-400">Drag anything. Paste anything. Group anything.</p>
+              <h1 className="text-[24px] font-semibold leading-none tracking-[-0.02em] text-[#f7f8f8]">Spaces</h1>
+              <p className="mt-1 text-[11px] font-normal text-[#8a8f98]">Drag anything. Paste anything. Group anything.</p>
             </div>
           ) : activeSpace ? (
             <input
               value={activeSpace.title}
               onChange={(event) => changeActive({ ...activeSpace, title: event.target.value })}
-              className="min-w-0 flex-1 bg-transparent text-sm font-black text-zinc-50 outline-none placeholder:text-zinc-500"
+              className="min-w-0 flex-1 bg-transparent text-[17px] font-medium tracking-[-0.01em] text-[#f7f8f8] outline-none placeholder:text-[#8a8f98]"
               aria-label="Space title"
             />
           ) : null}
@@ -183,11 +214,23 @@ export function SpacesSidebar() {
 
         <AnimatePresence mode="wait">
           {screen === "home" ? (
-            <motion.div key="home" className="flex min-h-0 flex-1 flex-col pt-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div
+              key="home"
+              className="flex min-h-0 flex-1 flex-col bg-[#08090a] pt-4"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+            >
               <SpacesHome spaces={spaces} onCreate={createNew} onOpen={openSpace} onRename={renameSpace} onDuplicate={duplicate} onDelete={removeSpace} />
             </motion.div>
           ) : activeSpace ? (
-            <motion.div key="canvas" className="flex min-h-0 flex-1 flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div
+              key="canvas"
+              className="flex min-h-0 flex-1 flex-col bg-[#08090a]"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 6 }}
+            >
               <SpaceCanvas space={activeSpace} onChange={changeActive} />
             </motion.div>
           ) : null}
