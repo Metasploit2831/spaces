@@ -17,6 +17,11 @@ Then load the extension in Chrome:
 4. Select `/Users/nima/Desktop/Spaces/dist`.
 5. Open or refresh any normal webpage. The Spaces sidebar appears on the right.
 
+Important:
+- Do not load the repository root folder into Chrome.
+- Always load the `dist` folder because that is where the built `manifest.json` and extension assets live.
+- If you download the repository ZIP from GitHub, open the extracted folder and then choose its `dist` subfolder in Chrome.
+
 Chrome does not run content scripts on internal pages like `chrome://extensions`, the Chrome Web Store, or some new-tab pages.
 
 ## Run Demo Locally
