@@ -15,7 +15,12 @@ document.documentElement.appendChild(host);
 const shadow = host.attachShadow({ mode: "open" });
 const stylesheet = document.createElement("link");
 stylesheet.rel = "stylesheet";
-stylesheet.href = chrome.runtime.getURL("assets/style.css");
+const background = chrome.runtime.getManifest().background;
+const serviceWorker = background && "service_worker" in background ? background.service_worker : "";
+const stylesheetPath = serviceWorker.startsWith("dist/")
+  ? "dist/assets/style.css"
+  : "assets/style.css";
+stylesheet.href = chrome.runtime.getURL(stylesheetPath);
 shadow.appendChild(stylesheet);
 
 const mount = document.createElement("div");

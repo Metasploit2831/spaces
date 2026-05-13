@@ -7,10 +7,16 @@ chrome.action.onClicked.addListener(async (tab) => {
     return;
   }
 
+  const background = chrome.runtime.getManifest().background;
+  const serviceWorker = background && "service_worker" in background ? background.service_worker : "";
+  const contentScriptFile = serviceWorker.startsWith("dist/")
+    ? "dist/assets/contentScript.js"
+    : "assets/contentScript.js";
+
   try {
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      files: ["assets/contentScript.js"]
+      files: [contentScriptFile]
     });
   } catch (error) {
     console.error("Unable to open Spaces on this page", error);
