@@ -2,7 +2,7 @@ import { AudioLines, Copy, File, FileImage, Film, Image, Link2, LucideIcon, More
 import { CSSProperties, PointerEvent, useState } from "react";
 import { formatBytes, domainFromUrl, relativeTime } from "../lib/sourceMetadata";
 import { SpaceCard } from "../types/space";
-import { Menu, MenuItem } from "./ui";
+import { Menu, MenuItem } from "@spaces/ui";
 
 type CardNodeProps = {
   card: SpaceCard;

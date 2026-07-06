@@ -1,5 +1,5 @@
 import { FileText, Group, Lightbulb, Scissors, Trash2 } from "lucide-react";
-import { Button, IconButton } from "./ui";
+import { Button, IconButton } from "@spaces/ui";
 
 type CanvasToolbarProps = {
   canGroup: boolean;

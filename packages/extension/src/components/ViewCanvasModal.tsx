@@ -1,6 +1,6 @@
 import { Maximize2, X } from "lucide-react";
 import { Space } from "../types/space";
-import { IconButton } from "./ui";
+import { IconButton } from "@spaces/ui";
 import { SpaceCanvas } from "./SpaceCanvas";
 
 type ViewCanvasModalProps = {

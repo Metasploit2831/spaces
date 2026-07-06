@@ -18,7 +18,7 @@ import { DraftPayload, Space, SpaceCard, SpaceGroup } from "../types/space";
 import { CanvasToolbar } from "./CanvasToolbar";
 import { CardNode } from "./CardNode";
 import { GroupContainer } from "./GroupContainer";
-import { Menu, MenuItem } from "./ui";
+import { Menu, MenuItem } from "@spaces/ui";
 
 type SpaceCanvasProps = {
   space: Space;

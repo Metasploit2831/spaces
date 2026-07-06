@@ -2,7 +2,7 @@ import { Copy, Edit3, FolderOpen, MoreHorizontal, Plus, Search, Trash2 } from "l
 import { useMemo, useState } from "react";
 import { domainFromUrl, relativeTime } from "../lib/sourceMetadata";
 import { Space } from "../types/space";
-import { Button, IconButton, Input, Menu, MenuItem } from "./ui";
+import { Button, IconButton, Input, Menu, MenuItem } from "@spaces/ui";
 
 type SpacesHomeProps = {
   spaces: Space[];

@@ -15,7 +15,7 @@ import { nowIso } from "../lib/sourceMetadata";
 import { Space } from "../types/space";
 import { SpaceCanvas } from "./SpaceCanvas";
 import { SpacesHome } from "./SpacesHome";
-import { Button, IconButton } from "./ui";
+import { Button, IconButton } from "@spaces/ui";
 import { ViewCanvasModal } from "./ViewCanvasModal";
 
 type SaveState = "Save" | "Saving..." | "Saved";

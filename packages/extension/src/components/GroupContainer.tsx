@@ -1,7 +1,7 @@
 import { Group, MoreHorizontal, Scissors, Sparkles, Trash2 } from "lucide-react";
 import { PointerEvent, useState } from "react";
 import { SpaceGroup } from "../types/space";
-import { Menu, MenuItem } from "./ui";
+import { Menu, MenuItem } from "@spaces/ui";
 
 type GroupContainerProps = {
   group: SpaceGroup;
