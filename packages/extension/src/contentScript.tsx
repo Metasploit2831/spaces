@@ -10,6 +10,7 @@ if (existing) {
 
 const host = document.createElement("div");
 host.id = "spaces-extension-root";
+host.dataset.spacesUi = "true";
 document.documentElement.appendChild(host);
 
 const shadow = host.attachShadow({ mode: "open" });

@@ -1,5 +1,5 @@
 import { toPng } from "html-to-image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CaptureButton } from "./CaptureButton";
 import { CapturePill } from "./CapturePill";
 import { DraftPayload } from "../types/space";
@@ -17,25 +17,43 @@ export function CaptureLayer() {
   const [hoverCapture, setHoverCapture] = useState<HoverCapture | null>(null);
   const [picking, setPicking] = useState(false);
   const [path, setPath] = useState<HTMLElement[]>([]);
-  const [pathIndex, setPathIndex] = useState(0);
+  const [overlayHidden, setOverlayHidden] = useState(false);
 
-  const pickedElement = path[pathIndex] || null;
+  const pickedElement = path[path.length - 1] || null;
 
-  const setElementPath = (element: Element | null) => {
-    const nextPath: HTMLElement[] = [];
-    let current = element instanceof HTMLElement ? element : null;
-    while (current && current !== document.body && current !== document.documentElement) {
-      if (!current.closest("[data-spaces-root]")) nextPath.push(current);
-      current = current.parentElement;
-    }
-    setPath(nextPath);
-    setPathIndex(0);
+  const isSpacesElement = (element: Element | null) => Boolean(element?.closest("[data-spaces-ui], [data-spaces-root]"));
+
+  const readElementFromPoint = (x: number, y: number) => {
+    const element = document.elementFromPoint(x, y);
+    if (!(element instanceof HTMLElement) || isSpacesElement(element)) return null;
+    return element;
+  };
+
+  const resetPathToLeaf = (element: HTMLElement | null) => {
+    setPath((current) => {
+      if (!element) return [];
+      if (current[0] === element) return current;
+      return [element];
+    });
+  };
+
+  const growSelection = () => {
+    setPath((current) => {
+      const selected = current[current.length - 1];
+      const parent = selected?.parentElement;
+      if (!parent || parent === document.body || parent === document.documentElement || isSpacesElement(parent)) return current;
+      return [...current, parent];
+    });
+  };
+
+  const shrinkSelection = () => {
+    setPath((current) => (current.length > 1 ? current.slice(0, -1) : current));
   };
 
   const endPicking = () => {
     setPicking(false);
     setPath([]);
-    setPathIndex(0);
+    setOverlayHidden(false);
     window.dispatchEvent(new CustomEvent("spaces:element-capture-ended"));
   };
 
@@ -47,7 +65,7 @@ export function CaptureLayer() {
 
   const cropVisibleTab = async (element: HTMLElement) => {
     element.scrollIntoView({ block: "center", inline: "center" });
-    await new Promise((resolve) => window.setTimeout(resolve, 120));
+    await new Promise((resolve) => window.setTimeout(resolve, 160));
     const rect = element.getBoundingClientRect();
     const dataUrl = await captureVisibleTab();
     const image = new window.Image();
@@ -55,15 +73,21 @@ export function CaptureLayer() {
     await image.decode();
     const scaleX = image.naturalWidth / window.innerWidth;
     const scaleY = image.naturalHeight / window.innerHeight;
+    const sourceLeft = Math.max(0, rect.left);
+    const sourceTop = Math.max(0, rect.top);
+    const sourceRight = Math.min(window.innerWidth, rect.right);
+    const sourceBottom = Math.min(window.innerHeight, rect.bottom);
+    const sourceWidth = Math.max(1, sourceRight - sourceLeft);
+    const sourceHeight = Math.max(1, sourceBottom - sourceTop);
     const canvas = document.createElement("canvas");
-    canvas.width = Math.max(1, Math.round(rect.width * scaleX));
-    canvas.height = Math.max(1, Math.round(rect.height * scaleY));
+    canvas.width = Math.max(1, Math.round(sourceWidth * scaleX));
+    canvas.height = Math.max(1, Math.round(sourceHeight * scaleY));
     const context = canvas.getContext("2d");
     if (!context) throw new Error("Unable to crop captured tab");
     context.drawImage(
       image,
-      Math.max(0, rect.left * scaleX),
-      Math.max(0, rect.top * scaleY),
+      sourceLeft * scaleX,
+      sourceTop * scaleY,
       canvas.width,
       canvas.height,
       0,
@@ -77,10 +101,13 @@ export function CaptureLayer() {
   const captureElement = async (element: HTMLElement) => {
     const pageSource = getPageSource();
     let src: string;
+    setOverlayHidden(true);
+    await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
     try {
-      // html-to-image can fail when remote assets/fonts violate CORS; the visible-tab crop below keeps capture usable.
-      src = await toPng(element, { cacheBust: true, skipFonts: false } as Parameters<typeof toPng>[1]);
+      // Remote images/fonts can still fail under CORS; the visible-tab crop below keeps capture usable.
+      src = await toPng(element, { cacheBust: true, pixelRatio: 2 });
     } catch {
+      // Large elements taller than the viewport are captured fully by html-to-image; this fallback only captures the visible portion.
       src = await cropVisibleTab(element);
     }
     const links = Array.from(element.querySelectorAll<HTMLAnchorElement>("a[href]")).map((link) => link.href);
@@ -90,10 +117,13 @@ export function CaptureLayer() {
       type: "element",
       src,
       thumbnailUrl: src,
+      captures: [src],
       content: element.innerText.trim(),
       links: Array.from(new Set(links)),
       images: Array.from(new Set(images)),
-      platform: detectPlatform(pageSource.sourceUrl),
+      sourceUrl: window.location.href,
+      pageTitle: document.title || pageSource.pageTitle,
+      platform: detectPlatform(window.location.href),
     };
     window.dispatchEvent(new CustomEvent("spaces:add-payload", { detail: payload }));
   };
@@ -102,6 +132,8 @@ export function CaptureLayer() {
     const startElementCapture = () => {
       setSelection(null);
       setHoverCapture(null);
+      setPath([]);
+      setOverlayHidden(false);
       setPicking(true);
       window.dispatchEvent(new CustomEvent("spaces:element-capture-started"));
     };
@@ -124,11 +156,12 @@ export function CaptureLayer() {
     if (!picking) return;
 
     const handleMove = (event: MouseEvent) => {
-      setElementPath(document.elementFromPoint(event.clientX, event.clientY));
+      resetPathToLeaf(readElementFromPoint(event.clientX, event.clientY));
     };
     const handleClick = (event: MouseEvent) => {
       event.preventDefault();
       event.stopPropagation();
+      event.stopImmediatePropagation();
       const element = pickedElement;
       if (!element) return;
       void captureElement(element).finally(endPicking);
@@ -136,20 +169,32 @@ export function CaptureLayer() {
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
+        event.stopPropagation();
         endPicking();
       }
       if (event.key === "ArrowUp") {
         event.preventDefault();
-        setPathIndex((index) => (path.length ? Math.min(path.length - 1, index + 1) : 0));
+        event.stopPropagation();
+        growSelection();
       }
       if (event.key === "ArrowDown") {
         event.preventDefault();
-        setPathIndex((index) => Math.max(0, index - 1));
+        event.stopPropagation();
+        shrinkSelection();
+      }
+      if (event.key === "Enter") {
+        event.preventDefault();
+        event.stopPropagation();
+        const element = pickedElement;
+        if (!element) return;
+        void captureElement(element).finally(endPicking);
       }
     };
     const handleWheel = (event: WheelEvent) => {
       event.preventDefault();
-      setPathIndex((index) => (path.length ? (event.deltaY < 0 ? Math.min(path.length - 1, index + 1) : Math.max(0, index - 1)) : 0));
+      event.stopPropagation();
+      if (event.deltaY < 0) growSelection();
+      else shrinkSelection();
     };
 
     document.addEventListener("mousemove", handleMove, true);
@@ -162,7 +207,7 @@ export function CaptureLayer() {
       document.removeEventListener("keydown", handleKey, true);
       document.removeEventListener("wheel", handleWheel, true);
     };
-  }, [path.length, pickedElement, picking]);
+  }, [pickedElement, picking]);
 
   useEffect(() => {
     if (picking) return;
@@ -185,7 +230,7 @@ export function CaptureLayer() {
 
     const handleMouseOver = (event: MouseEvent) => {
       const target = event.target as HTMLElement | null;
-      if (!target || target.closest("[data-spaces-root]")) return;
+      if (!target || target.closest("[data-spaces-ui], [data-spaces-root]")) return;
       const image = target.closest("img") as HTMLImageElement | null;
       const media = target.closest("video,audio") as HTMLMediaElement | null;
       const link = target.closest("a") as HTMLAnchorElement | null;
@@ -245,27 +290,30 @@ export function CaptureLayer() {
   }, [picking]);
 
   const rect = pickedElement?.getBoundingClientRect();
-  const breadcrumb = pickedElement
-    ? `${pickedElement.tagName.toLowerCase()}${pickedElement.id ? `#${pickedElement.id}` : ""}${
-        pickedElement.className && typeof pickedElement.className === "string" ? `.${pickedElement.className.trim().split(/\s+/).slice(0, 2).join(".")}` : ""
-      }`
-    : "Move over an element";
+  const describeElement = (element: HTMLElement) =>
+    `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ""}${
+      element.className && typeof element.className === "string" ? `.${element.className.trim().split(/\s+/).slice(0, 2).join(".")}` : ""
+    }`;
+  const breadcrumb = useMemo(() => (path.length ? path.map(describeElement).join(" › ") : "Move over an element"), [path]);
+  const label = pickedElement && rect ? `${describeElement(pickedElement)} ${Math.round(rect.width)}×${Math.round(rect.height)}` : "Move over an element";
 
   return (
     <>
       {selection ? <CapturePill {...selection} /> : null}
       {hoverCapture ? <CaptureButton {...hoverCapture} /> : null}
-      {picking ? (
+      {picking && !overlayHidden ? (
         <>
-          <div data-spaces-root className="fixed inset-0 z-[2147483645] bg-black/20" style={{ pointerEvents: "none" }} />
+          <div data-spaces-root data-spaces-ui className="fixed inset-0 z-[2147483645] bg-black/20" style={{ pointerEvents: "none" }} />
           {rect ? (
             <div
               data-spaces-root
+              data-spaces-ui
               className="fixed z-[2147483646] rounded-sm border-2 border-white bg-white/10 shadow-[0_0_0_9999px_rgba(0,0,0,0.12)]"
               style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height, pointerEvents: "none" }}
             >
-              <div className="absolute left-0 top-0 -translate-y-full rounded-t-md bg-white px-2 py-1 text-[11px] font-semibold text-[#0a0a0b]">
-                {breadcrumb}
+              <div className="absolute left-0 top-0 max-w-[min(420px,calc(100vw-24px))] -translate-y-full rounded-t-md bg-white px-2 py-1 text-[11px] font-semibold text-[#0a0a0b] shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
+                <div className="truncate">{label}</div>
+                <div className="truncate text-[10px] font-medium text-[#3f4248]">{breadcrumb}</div>
               </div>
             </div>
           ) : null}
