@@ -46,21 +46,36 @@ textarea {
 }
 
 @container (max-width: 460px) {
-  .spaces-gallery-topbar {
-    grid-template-columns: minmax(0, 1fr) auto auto;
+  .spaces-app-topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
-  .spaces-gallery-topbar > .relative,
-  .spaces-gallery-topbar > button:last-child {
-    grid-column: 1 / -1;
-  }
-
-  .spaces-action-label,
-  .spaces-nav-label {
+  .spaces-segmented,
+  .spaces-density {
     display: none;
+  }
+
+  .spaces-filter-row {
+    flex-wrap: wrap;
+  }
+
+  .spaces-filter-row > :first-child {
+    flex-basis: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
   }
 
   .spaces-masonry {
     column-width: 136px !important;
+  }
+}
+
+@container (max-width: 360px) {
+  .spaces-app-topbar {
+    grid-template-columns: 1fr;
+  }
+
+  .spaces-app-topbar > :last-child {
+    justify-content: flex-start;
   }
 }

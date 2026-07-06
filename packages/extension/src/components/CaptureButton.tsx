@@ -18,7 +18,7 @@ export function CaptureButton({ x, y, payload }: CaptureButtonProps) {
         event.stopPropagation();
         setSpacesPayload(event.dataTransfer, { ...payload, ...getPageSource() });
       }}
-      className="fixed z-[2147483646] grid h-8 w-8 cursor-grab place-items-center rounded-md border border-zinc-800 bg-zinc-950 text-mint shadow-2xl transition hover:scale-105 active:cursor-grabbing"
+      className="fixed z-[2147483646] grid h-8 w-8 cursor-grab place-items-center rounded-md border border-zinc-800 bg-zinc-950 text-zinc-100 shadow-2xl transition hover:scale-105 active:cursor-grabbing"
       style={{ left: x, top: y }}
       title="Add to Spaces"
       aria-label="Add to Spaces"

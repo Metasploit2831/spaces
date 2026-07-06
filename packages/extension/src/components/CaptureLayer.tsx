@@ -261,10 +261,10 @@ export function CaptureLayer() {
           {rect ? (
             <div
               data-spaces-root
-              className="fixed z-[2147483646] rounded-sm border-2 border-[#e4f222] bg-[#e4f222]/10 shadow-[0_0_0_9999px_rgba(0,0,0,0.12)]"
+              className="fixed z-[2147483646] rounded-sm border-2 border-white bg-white/10 shadow-[0_0_0_9999px_rgba(0,0,0,0.12)]"
               style={{ left: rect.left, top: rect.top, width: rect.width, height: rect.height, pointerEvents: "none" }}
             >
-              <div className="absolute left-0 top-0 -translate-y-full rounded-t-md bg-[#e4f222] px-2 py-1 text-[11px] font-semibold text-[#0a0a0b]">
+              <div className="absolute left-0 top-0 -translate-y-full rounded-t-md bg-white px-2 py-1 text-[11px] font-semibold text-[#0a0a0b]">
                 {breadcrumb}
               </div>
             </div>

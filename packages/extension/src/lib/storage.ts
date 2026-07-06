@@ -1,4 +1,4 @@
-import { Space } from "../types/space";
+import { Collection, Space } from "../types/space";
 import { makeId, nowIso } from "./sourceMetadata";
 import { detectPlatform } from "./platform";
 import { mirrorSpacesToCloud } from "./cloudSync";
@@ -49,6 +49,7 @@ export function createSpace(): Space {
     id: makeId("space"),
     title: "Untitled Space",
     cards: [],
+    collections: [],
     createdAt: timestamp,
     updatedAt: timestamp,
   };
@@ -68,14 +69,38 @@ export function deleteSpace(spaces: Space[], id: string) {
 export function duplicateSpace(space: Space): Space {
   const timestamp = nowIso();
   const id = makeId("space");
+  const cardIdMap = new Map(space.cards.map((card) => [card.id, makeId("card")]));
   return {
     ...space,
     id,
     title: `${space.title} copy`,
-    cards: space.cards.map((card) => ({ ...card, id: makeId("card"), spaceId: id })),
+    cards: space.cards.map((card) => ({ ...card, id: cardIdMap.get(card.id) || makeId("card"), spaceId: id })),
+    collections: space.collections.map((collection) => ({
+      ...collection,
+      id: makeId("collection"),
+      memberCardIds: collection.memberCardIds.map((cardId) => cardIdMap.get(cardId)).filter((cardId): cardId is string => Boolean(cardId)),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })),
     createdAt: timestamp,
     updatedAt: timestamp,
   };
+}
+
+function migrateCollections(value: unknown): Collection[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => {
+    const legacy = item as Partial<Collection>;
+    const timestamp = nowIso();
+    return {
+      id: legacy.id || makeId("collection"),
+      name: legacy.name || "Untitled Collection",
+      memberCardIds: Array.isArray(legacy.memberCardIds) ? legacy.memberCardIds.filter((id): id is string => typeof id === "string") : [],
+      coverUrl: legacy.coverUrl,
+      createdAt: legacy.createdAt || timestamp,
+      updatedAt: legacy.updatedAt || legacy.createdAt || timestamp,
+    };
+  });
 }
 
 function migrateSpaces(value: unknown[]): Space[] {
@@ -88,20 +113,25 @@ function migrateSpaces(value: unknown[]): Space[] {
       title: legacy.title || "Untitled Space",
       createdAt: legacy.createdAt || nowIso(),
       updatedAt: legacy.updatedAt || legacy.createdAt || nowIso(),
+      collections: migrateCollections(legacy.collections),
       cards: Array.isArray(legacy.cards)
-        ? legacy.cards.map((card) => ({
-            ...card,
-            id: card.id || makeId("card"),
-            spaceId,
-            platform: card.platform || detectPlatform(card.sourceUrl || card.url),
-            thumbnailUrl: card.thumbnailUrl || (card.type === "image" || card.type === "screenshot" || card.type === "element" ? card.src : undefined),
-            faviconUrl: card.faviconUrl,
-            x: card.x || 0,
-            y: card.y || 0,
-            width: card.width || 180,
-            height: card.height || 128,
-            createdAt: card.createdAt || nowIso(),
-          }))
+        ? legacy.cards.map((card) => {
+            const captures = [card.thumbnailUrl, card.src].filter((value): value is string => Boolean(value));
+            return {
+              ...card,
+              id: card.id || makeId("card"),
+              spaceId,
+              platform: card.platform || detectPlatform(card.sourceUrl || card.url),
+              thumbnailUrl: card.thumbnailUrl || (card.type === "image" || card.type === "screenshot" || card.type === "element" ? card.src : undefined),
+              captures: card.captures || (captures.length ? captures : undefined),
+              faviconUrl: card.faviconUrl,
+              x: card.x || 0,
+              y: card.y || 0,
+              width: card.width || 180,
+              height: card.height || 128,
+              createdAt: card.createdAt || nowIso(),
+            };
+          })
         : [],
     };
   });

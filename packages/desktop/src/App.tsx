@@ -11,6 +11,7 @@ type SpaceCard = {
   src?: string;
   url?: string;
   thumbnailUrl?: string;
+  captures?: string[];
   faviconUrl?: string;
   sourceUrl?: string;
   pageTitle?: string;
@@ -51,13 +52,15 @@ function relativeTime(value?: string) {
 }
 
 function toGalleryItem(card: SpaceCard): BookmarkGalleryItem {
+  const captures = [card.thumbnailUrl, card.src].filter((value): value is string => Boolean(value));
   return {
     id: card.id,
     type: card.type,
     title: card.pageTitle || card.content || card.fileName || card.url || "Saved item",
     body: card.content,
     url: card.url || card.sourceUrl,
-    thumbnailUrl: card.thumbnailUrl || (card.type === "image" || card.type === "screenshot" ? card.src : undefined),
+    thumbnailUrl: card.thumbnailUrl || (card.type === "image" || card.type === "screenshot" || card.type === "element" ? card.src : undefined),
+    captures: card.captures || (captures.length ? captures : undefined),
     faviconUrl: card.faviconUrl,
     platform: card.platform || "web",
     sourceDomain: domainFromUrl(card.sourceUrl || card.url),
@@ -86,7 +89,7 @@ function AuthBar({ user }: { user: User | null }) {
   if (user) {
     return (
       <div className="flex h-10 items-center gap-2 border-b border-[#23252a] bg-[#0b0c0d] px-4 text-[12px] text-[#8a8f98]">
-        <Cloud size={14} className="text-[#e4f222]" />
+        <Cloud size={14} className="text-[#d0d3d7]" />
         <span className="min-w-0 flex-1 truncate">{user.email}</span>
         <IconButton label="Sign out" onClick={() => void supabase?.auth.signOut()} className="h-7 w-7">
           <LogOut size={13} />

@@ -16,6 +16,7 @@ export function cardFromPayload(spaceId: string, payload: DraftPayload): SpaceCa
   const thumbnailUrl =
     payload.thumbnailUrl ||
     (payload.type === "image" || payload.type === "screenshot" || payload.type === "element" ? payload.src : pageSource.thumbnailUrl);
+  const captures = payload.captures || (thumbnailUrl ? [thumbnailUrl] : undefined);
 
   return {
     id: makeId("card"),
@@ -26,6 +27,7 @@ export function cardFromPayload(spaceId: string, payload: DraftPayload): SpaceCa
     src: payload.src,
     url: payload.url,
     thumbnailUrl,
+    captures,
     faviconUrl: payload.faviconUrl || pageSource.faviconUrl,
     links: payload.links,
     images: payload.images,

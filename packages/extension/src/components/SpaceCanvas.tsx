@@ -13,6 +13,7 @@ type SpaceCanvasProps = {
 };
 
 function toGalleryItem(card: SpaceCard): BookmarkGalleryItem {
+  const captures = [card.thumbnailUrl, card.src].filter((value): value is string => Boolean(value));
   return {
     id: card.id,
     type: card.type,
@@ -20,6 +21,7 @@ function toGalleryItem(card: SpaceCard): BookmarkGalleryItem {
     body: card.content,
     url: card.url || card.sourceUrl,
     thumbnailUrl: card.thumbnailUrl || (card.type === "image" || card.type === "screenshot" || card.type === "element" ? card.src : undefined),
+    captures: card.captures || (captures.length ? captures : undefined),
     faviconUrl: card.faviconUrl,
     platform: card.platform,
     sourceDomain: domainFromUrl(card.sourceUrl || card.url),

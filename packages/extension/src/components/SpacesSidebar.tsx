@@ -237,7 +237,7 @@ export function SpacesSidebar() {
         onClick={() => setCollapsed(false)}
         className="fixed right-3 top-1/2 z-[2147483644] flex -translate-y-1/2 items-center gap-2 rounded-md border border-[#23252a] bg-[#161718] px-3 py-2 text-[12px] font-medium tracking-[-0.01em] text-[#f7f8f8] shadow-[rgba(8,9,10,0.6)_0px_4px_32px_0px]"
       >
-        <ChevronRight size={15} className="rotate-180 text-[#e4f222]" />
+        <ChevronRight size={15} className="rotate-180 text-[#d0d3d7]" />
         Spaces
       </button>
     );
@@ -250,7 +250,7 @@ export function SpacesSidebar() {
         initial={{ x: 40, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         className={`fixed right-0 top-0 z-[2147483644] flex h-screen flex-col overflow-hidden border-l border-[rgba(255,255,255,0.06)] bg-[#0A0A0B] text-[#F5F6F7] shadow-[rgba(0,0,0,0.5)_0px_12px_48px_0px] transition ${
-          dragActive ? "ring-2 ring-inset ring-[#5e6ad2]/50" : ""
+          dragActive ? "ring-1 ring-inset ring-white/20" : ""
         }`}
         style={{ width: sidebarWidth, containerType: "inline-size" }}
         onDragOver={(event) => {
@@ -261,7 +261,7 @@ export function SpacesSidebar() {
         onDrop={() => setDragActive(false)}
       >
         <div
-          className="absolute left-0 top-0 z-50 h-full w-2 cursor-ew-resize bg-transparent hover:bg-[#e4f222]/20"
+          className="absolute left-0 top-0 z-50 h-full w-2 cursor-ew-resize bg-transparent hover:bg-white/10"
           onPointerDown={startResize}
           onDoubleClick={resetWidth}
           title="Resize sidebar"
@@ -272,7 +272,7 @@ export function SpacesSidebar() {
               <Home size={16} />
             </IconButton>
           ) : (
-            <div className="grid h-8 w-8 place-items-center rounded-md border border-[rgba(255,255,255,0.06)] bg-[#141416] text-[#e4f222]">
+            <div className="grid h-8 w-8 place-items-center rounded-md border border-[rgba(255,255,255,0.06)] bg-[#141416] text-[#d0d3d7]">
               <ChevronRight size={17} className="rotate-180" />
             </div>
           )}

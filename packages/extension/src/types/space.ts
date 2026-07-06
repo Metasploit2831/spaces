@@ -21,6 +21,7 @@ export type SpaceCard = {
   src?: string;
   url?: string;
   thumbnailUrl?: string;
+  captures?: string[];
   faviconUrl?: string;
   links?: string[];
   images?: string[];
@@ -36,10 +37,20 @@ export type SpaceCard = {
   createdAt: string;
 };
 
+export type Collection = {
+  id: string;
+  name: string;
+  memberCardIds: string[];
+  coverUrl?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type Space = {
   id: string;
   title: string;
   cards: SpaceCard[];
+  collections: Collection[];
   createdAt: string;
   updatedAt: string;
 };

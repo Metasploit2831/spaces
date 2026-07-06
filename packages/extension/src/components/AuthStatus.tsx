@@ -22,7 +22,7 @@ export function AuthStatus({ email }: AuthStatusProps) {
   if (email) {
     return (
       <div className="flex items-center gap-2 border-b border-[#23252a] bg-[#0b0c0d] px-3 py-2 text-[11px] text-[#8a8f98]">
-        <Cloud size={13} className="text-[#e4f222]" />
+        <Cloud size={13} className="text-[#d0d3d7]" />
         <span className="min-w-0 flex-1 truncate">{email}</span>
         <IconButton label="Sign out" onClick={() => void signOutCloud()} className="h-7 w-7">
           <LogOut size={13} />
