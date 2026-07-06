@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronRight, Home, Maximize2, PanelRightClose, Save, X } from "lucide-react";
+import { ChevronRight, Home, Maximize2, Save, X } from "lucide-react";
 import { PointerEvent, useEffect, useMemo, useState } from "react";
 import {
   createSpace,
@@ -12,8 +12,9 @@ import {
   updateSpace,
 } from "../lib/storage";
 import { loadCloudSpaces, mergeSpaces, onAuthChange, subscribeToCloudSpaces } from "../lib/cloudSync";
+import { cardFromPayload } from "../lib/cards";
 import { nowIso } from "../lib/sourceMetadata";
-import { Space } from "../types/space";
+import { DraftPayload, Space } from "../types/space";
 import { SpaceCanvas } from "./SpaceCanvas";
 import { SpacesHome } from "./SpacesHome";
 import { Button, IconButton } from "@spaces/ui";
@@ -21,6 +22,35 @@ import { ViewCanvasModal } from "./ViewCanvasModal";
 import { AuthStatus } from "./AuthStatus";
 
 type SaveState = "Save" | "Saving..." | "Saved";
+const PANEL_WIDTH_KEY = "spaces:panelWidth";
+const DEFAULT_PANEL_WIDTH = 380;
+const MIN_PANEL_WIDTH = 320;
+
+function maxPanelWidth() {
+  return Math.min(900, Math.round(window.innerWidth * 0.9));
+}
+
+function clampPanelWidth(width: number) {
+  return Math.min(maxPanelWidth(), Math.max(MIN_PANEL_WIDTH, width));
+}
+
+function readPanelWidth(): Promise<number> {
+  return new Promise((resolve) => {
+    if (typeof chrome !== "undefined" && chrome.storage?.local) {
+      chrome.storage.local.get([PANEL_WIDTH_KEY], (result) => resolve(clampPanelWidth(Number(result[PANEL_WIDTH_KEY]) || DEFAULT_PANEL_WIDTH)));
+      return;
+    }
+    resolve(clampPanelWidth(Number(window.localStorage.getItem(PANEL_WIDTH_KEY)) || DEFAULT_PANEL_WIDTH));
+  });
+}
+
+function writePanelWidth(width: number) {
+  if (typeof chrome !== "undefined" && chrome.storage?.local) {
+    chrome.storage.local.set({ [PANEL_WIDTH_KEY]: width });
+    return;
+  }
+  window.localStorage.setItem(PANEL_WIDTH_KEY, String(width));
+}
 
 export function SpacesSidebar() {
   const [spaces, setSpaces] = useState<Space[]>([]);
@@ -31,29 +61,34 @@ export function SpacesSidebar() {
   const [dragActive, setDragActive] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [syncEmail, setSyncEmail] = useState<string | undefined>();
-  const [sidebarWidth, setSidebarWidth] = useState(() => {
-    const stored = typeof window !== "undefined" ? window.localStorage.getItem("spaces:sidebar-width") : null;
-    const width = stored ? Number(stored) : 420;
-    return Number.isFinite(width) ? Math.min(680, Math.max(400, width)) : 420;
-  });
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_PANEL_WIDTH);
 
   useEffect(() => {
-    window.localStorage.setItem("spaces:sidebar-width", String(sidebarWidth));
-  }, [sidebarWidth]);
+    void readPanelWidth().then(setSidebarWidth);
+  }, []);
 
   const startResize = (event: PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
     const startX = event.clientX;
     const startWidth = sidebarWidth;
+    let currentWidth = startWidth;
     const move = (moveEvent: globalThis.PointerEvent) => {
-      const next = Math.min(680, Math.max(400, startWidth - (moveEvent.clientX - startX)));
+      const next = clampPanelWidth(startWidth - (moveEvent.clientX - startX));
+      currentWidth = next;
       setSidebarWidth(next);
     };
     const stop = () => {
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", stop);
+      writePanelWidth(currentWidth);
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", stop);
+  };
+
+  const resetWidth = () => {
+    setSidebarWidth(DEFAULT_PANEL_WIDTH);
+    writePanelWidth(DEFAULT_PANEL_WIDTH);
   };
 
   useEffect(() => {
@@ -93,6 +128,37 @@ export function SpacesSidebar() {
       });
     });
   }, [activeSpace]);
+
+  useEffect(() => {
+    const handlePayload = (event: Event) => {
+      const payload = (event as CustomEvent<DraftPayload>).detail;
+      if (!payload) return;
+
+      if (activeSpace) {
+        const card = cardFromPayload(activeSpace.id, payload);
+        const nextSpace = { ...activeSpace, cards: [card, ...activeSpace.cards], updatedAt: nowIso() };
+        const nextSpaces = updateSpace(spaces, nextSpace);
+        setActiveSpace(nextSpace);
+        setSpaces(nextSpaces);
+        void saveSpaces(nextSpaces);
+        return;
+      }
+
+      const nextSpace = createSpace();
+      const card = cardFromPayload(nextSpace.id, payload);
+      const withCard = { ...nextSpace, cards: [card], updatedAt: nowIso() };
+      const nextSpaces = [withCard, ...spaces];
+      setActiveSpace(withCard);
+      setScreen("canvas");
+      setSaveState("Save");
+      setSpaces(nextSpaces);
+      void saveSpaces(nextSpaces);
+      void setActiveSpaceId(withCard.id);
+    };
+
+    window.addEventListener("spaces:add-payload", handlePayload);
+    return () => window.removeEventListener("spaces:add-payload", handlePayload);
+  }, [activeSpace, spaces]);
 
   const activeIsSaved = useMemo(
     () => Boolean(activeSpace && spaces.some((space) => space.id === activeSpace.id)),
@@ -183,10 +249,10 @@ export function SpacesSidebar() {
         data-spaces-root
         initial={{ x: 40, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        className={`fixed right-0 top-0 z-[2147483644] flex h-screen flex-col overflow-hidden border-l border-[#23252a] bg-[#08090a] text-[#f7f8f8] shadow-[rgba(8,9,10,0.6)_0px_4px_32px_0px] transition ${
+        className={`fixed right-0 top-0 z-[2147483644] flex h-screen flex-col overflow-hidden border-l border-[rgba(255,255,255,0.06)] bg-[#0A0A0B] text-[#F5F6F7] shadow-[rgba(0,0,0,0.5)_0px_12px_48px_0px] transition ${
           dragActive ? "ring-2 ring-inset ring-[#5e6ad2]/50" : ""
         }`}
-        style={{ width: sidebarWidth }}
+        style={{ width: sidebarWidth, containerType: "inline-size" }}
         onDragOver={(event) => {
           event.preventDefault();
           setDragActive(true);
@@ -195,44 +261,38 @@ export function SpacesSidebar() {
         onDrop={() => setDragActive(false)}
       >
         <div
-          className="absolute left-0 top-0 h-full w-2 cursor-col-resize bg-transparent"
+          className="absolute left-0 top-0 z-50 h-full w-2 cursor-ew-resize bg-transparent hover:bg-[#e4f222]/20"
           onPointerDown={startResize}
+          onDoubleClick={resetWidth}
           title="Resize sidebar"
         />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_top,rgba(94,106,210,0.12),transparent_55%)]" />
-        <header className="relative flex min-h-[68px] items-center gap-2 border-b border-[#23252a] bg-[#08090a] px-2 py-4 text-[#f7f8f8]">
+        <header className="relative flex min-h-[48px] shrink-0 items-center gap-2 border-b border-[rgba(255,255,255,0.06)] bg-[#0A0A0B] px-2 py-2 text-[#F5F6F7]">
           {screen === "canvas" ? (
             <IconButton label="Back to Spaces Home" onClick={() => setScreen("home")}>
               <Home size={16} />
             </IconButton>
           ) : (
-            <div className="grid h-8 w-8 place-items-center rounded-md border border-[#23252a] bg-[#161718] text-[#e4f222]">
-              <PanelRightClose size={17} />
+            <div className="grid h-8 w-8 place-items-center rounded-md border border-[rgba(255,255,255,0.06)] bg-[#141416] text-[#e4f222]">
+              <ChevronRight size={17} className="rotate-180" />
             </div>
           )}
 
           {screen === "home" ? (
-            <div>
-              <h1 className="text-[24px] font-semibold leading-none tracking-[-0.02em] text-[#f7f8f8]">Spaces</h1>
-              <p className="mt-1 text-[11px] font-normal text-[#8a8f98]">Save anything. Find it by platform.</p>
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-[18px] font-semibold leading-none text-[#F5F6F7]">Spaces</h1>
             </div>
           ) : activeSpace ? (
-            <input
-              value={activeSpace.title}
-              onChange={(event) => changeActive({ ...activeSpace, title: event.target.value })}
-              className="min-w-0 flex-1 bg-transparent text-[17px] font-medium tracking-[-0.01em] text-[#f7f8f8] outline-none placeholder:text-[#8a8f98]"
-              aria-label="Space title"
-            />
+            <div className="min-w-0 flex-1" />
           ) : null}
 
           <div className="ml-auto flex items-center gap-1.5">
             {screen === "canvas" && activeSpace ? (
               <>
-                <Button variant="secondary" onClick={() => setModalOpen(true)} className="px-2.5">
-                  <Maximize2 size={14} /> View Canvas
-                </Button>
-                <Button onClick={saveActive} className="px-2.5">
-                  <Save size={14} /> {saveState}
+                <IconButton label="View canvas" onClick={() => setModalOpen(true)} className="h-8 w-8">
+                  <Maximize2 size={14} />
+                </IconButton>
+                <Button onClick={saveActive} className="h-8 px-2.5">
+                  <Save size={14} /> <span className="spaces-action-label">{saveState}</span>
                 </Button>
               </>
             ) : null}

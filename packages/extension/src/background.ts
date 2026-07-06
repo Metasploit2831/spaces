@@ -2,6 +2,19 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.set({ spacesInstalledAt: Date.now() });
 });
 
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type !== "SPACES_CAPTURE_VISIBLE_TAB") return false;
+
+  chrome.tabs.captureVisibleTab({ format: "png" }, (dataUrl) => {
+    if (chrome.runtime.lastError) {
+      sendResponse({ error: chrome.runtime.lastError.message });
+      return;
+    }
+    sendResponse({ dataUrl });
+  });
+  return true;
+});
+
 chrome.action.onClicked.addListener(async (tab) => {
   if (!tab.id || !tab.url || /^chrome:|^edge:|^about:|^chrome-extension:/.test(tab.url)) {
     return;

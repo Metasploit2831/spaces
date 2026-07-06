@@ -94,7 +94,7 @@ function migrateSpaces(value: unknown[]): Space[] {
             id: card.id || makeId("card"),
             spaceId,
             platform: card.platform || detectPlatform(card.sourceUrl || card.url),
-            thumbnailUrl: card.thumbnailUrl || (card.type === "image" || card.type === "screenshot" ? card.src : undefined),
+            thumbnailUrl: card.thumbnailUrl || (card.type === "image" || card.type === "screenshot" || card.type === "element" ? card.src : undefined),
             faviconUrl: card.faviconUrl,
             x: card.x || 0,
             y: card.y || 0,

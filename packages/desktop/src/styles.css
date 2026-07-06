@@ -40,3 +40,27 @@ textarea {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+[data-spaces-gallery] {
+  container-type: inline-size;
+}
+
+@container (max-width: 460px) {
+  .spaces-gallery-topbar {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .spaces-gallery-topbar > .relative,
+  .spaces-gallery-topbar > button:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .spaces-action-label,
+  .spaces-nav-label {
+    display: none;
+  }
+
+  .spaces-masonry {
+    column-width: 136px !important;
+  }
+}

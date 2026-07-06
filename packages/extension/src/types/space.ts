@@ -1,4 +1,4 @@
-export type CardType = "text" | "image" | "link" | "video" | "audio" | "screenshot" | "file";
+export type CardType = "text" | "image" | "link" | "video" | "audio" | "screenshot" | "file" | "element";
 
 export type Platform =
   | "instagram"
@@ -22,6 +22,8 @@ export type SpaceCard = {
   url?: string;
   thumbnailUrl?: string;
   faviconUrl?: string;
+  links?: string[];
+  images?: string[];
   fileName?: string;
   fileType?: string;
   fileSize?: number;

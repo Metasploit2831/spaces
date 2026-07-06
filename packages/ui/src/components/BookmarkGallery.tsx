@@ -6,6 +6,7 @@ import {
   Image as ImageIcon,
   Layers3,
   Link2,
+  MousePointer2,
   Plus,
   Search,
   Trash2,
@@ -43,7 +44,9 @@ export type BookmarkGalleryProps = {
   items: BookmarkGalleryItem[];
   selectedIds: string[];
   dragActive?: boolean;
+  captureElementActive?: boolean;
   onAddText: () => void;
+  onCaptureElement?: () => void;
   onDeleteSelected: () => void;
   onSelect: (id: string, multi: boolean) => void;
   onOpen?: (item: BookmarkGalleryItem) => void;
@@ -64,16 +67,24 @@ const platformLabels: Record<GalleryPlatform, string> = {
 
 const platformColors: Record<GalleryPlatform, string> = {
   instagram: "bg-[#f04f8b] text-white",
-  twitter: "bg-[#f7f8f8] text-[#08090a]",
+  twitter: "bg-[#f5f6f7] text-[#0a0a0b]",
   linkedin: "bg-[#2a6fcb] text-white",
   facebook: "bg-[#3f67d6] text-white",
   youtube: "bg-[#ef4444] text-white",
-  tiktok: "bg-[#16f2cf] text-[#08090a]",
+  tiktok: "bg-[#16f2cf] text-[#0a0a0b]",
   reddit: "bg-[#ff6a35] text-white",
   pinterest: "bg-[#d92d45] text-white",
-  github: "bg-[#e8eaed] text-[#08090a]",
-  web: "bg-[#383b3f] text-[#f7f8f8]",
+  github: "bg-[#e8eaed] text-[#0a0a0b]",
+  web: "bg-[rgba(255,255,255,0.12)] text-[#f5f6f7]",
 };
+
+function tileHeight(item: BookmarkGalleryItem, index: number) {
+  if (item.type === "text") return 172;
+  if (item.type === "element") return 250;
+  if (item.type === "screenshot") return 236;
+  if (item.type === "image") return [210, 260, 188, 232][index % 4];
+  return [184, 216, 198][index % 3];
+}
 
 function Thumbnail({ item }: { item: BookmarkGalleryItem }) {
   if (item.thumbnailUrl) {
@@ -82,22 +93,24 @@ function Thumbnail({ item }: { item: BookmarkGalleryItem }) {
 
   if (item.type === "text") {
     return (
-      <div className="h-full bg-[#17191c] p-4">
-        <FileText size={18} className="mb-3 text-[#e4f222]" />
-        <p className="line-clamp-5 text-[13px] leading-5 text-[#d0d6e0]">{item.body || item.title}</p>
+      <div className="flex h-full flex-col justify-between bg-[linear-gradient(135deg,#e4f222,#a7dd35)] p-4 text-[#0a0a0b]">
+        <FileText size={18} />
+        <p className="line-clamp-5 text-[19px] font-semibold leading-6">{item.body || item.title}</p>
       </div>
     );
   }
 
   return (
-    <div className="grid h-full place-items-center bg-[linear-gradient(135deg,#1b1d20,#0b0c0d_62%,#313a89)]">
-      {item.type === "link" ? <Link2 size={30} className="text-[#8fb4ff]" /> : <ImageIcon size={30} className="text-[#e4f222]" />}
+    <div className="grid h-full place-items-center bg-[linear-gradient(135deg,#1a1b1d,#0a0a0b_62%,#2c2f36)]">
+      <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[rgba(255,255,255,0.08)]">
+        {item.type === "link" ? <Link2 size={28} className="text-[#8fb4ff]" /> : <ImageIcon size={28} className="text-[#e4f222]" />}
+      </div>
     </div>
   );
 }
 
 function PlatformBadge({ platform }: { platform: GalleryPlatform }) {
-  return <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${platformColors[platform]}`}>{platformLabels[platform]}</span>;
+  return <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${platformColors[platform]}`}>{platformLabels[platform]}</span>;
 }
 
 export function BookmarkGallery({
@@ -105,7 +118,9 @@ export function BookmarkGallery({
   items,
   selectedIds,
   dragActive = false,
+  captureElementActive = false,
   onAddText,
+  onCaptureElement,
   onDeleteSelected,
   onSelect,
   onOpen,
@@ -127,52 +142,62 @@ export function BookmarkGallery({
   );
 
   return (
-    <div className={`flex min-h-0 flex-1 bg-[#08090a] text-[#f7f8f8] ${dragActive ? "ring-2 ring-inset ring-[#e4f222]/45" : ""}`}>
-      <aside className="hidden w-[96px] shrink-0 border-r border-[#202226] bg-[#0b0c0d] px-3 py-4 min-[620px]:block">
-        <div className="grid h-9 w-9 place-items-center rounded-md border border-[#2b2e33] bg-[#151719] text-[#e4f222]">
+    <div
+      data-spaces-gallery
+      className={`flex min-h-0 flex-1 overflow-hidden bg-[#0A0A0B] text-[#F5F6F7] ${dragActive ? "ring-2 ring-inset ring-[#e4f222]/45" : ""}`}
+    >
+      <aside className="w-16 shrink-0 border-r border-[rgba(255,255,255,0.06)] bg-[#0A0A0B] px-2 py-3">
+        <div className="mx-auto grid h-9 w-9 place-items-center rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#141416] text-[#e4f222]">
           <Archive size={18} />
         </div>
-        <nav className="mt-6 space-y-1">
+        <nav className="mt-5 space-y-1">
           {[
             ["Library", Grid2X2],
             ["Spaces", Layers3],
           ].map(([label, Icon]) => (
             <button
               key={label as string}
-              className="flex w-full flex-col items-center gap-1 rounded-md px-2 py-2.5 text-[10px] font-medium text-[#747982] transition hover:bg-[#141618] hover:text-[#d0d6e0]"
+              title={label as string}
+              className="flex h-11 w-full flex-col items-center justify-center gap-0.5 rounded-xl text-[9px] font-medium text-[#8A8F98] transition hover:bg-[#141416] hover:text-[#F5F6F7]"
             >
               <Icon size={16} />
-              <span>{label as string}</span>
+              <span className="spaces-nav-label">{label as string}</span>
             </button>
           ))}
         </nav>
       </aside>
 
-      <section className="flex min-w-0 flex-1 flex-col">
-        <header className="shrink-0 border-b border-[#202226] bg-[#08090a] px-4 py-4">
-          <div className="flex items-center gap-3">
-            <h1 className="min-w-0 flex-1 truncate text-[24px] font-semibold leading-none">{title}</h1>
-            <Button variant="secondary" onClick={onAddText}>
-              <Plus size={14} /> Text
+      <section className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="shrink-0 border-b border-[rgba(255,255,255,0.06)] bg-[#0A0A0B] px-3 py-3">
+          <div className="spaces-gallery-topbar grid grid-cols-[minmax(0,1fr)_auto_auto_auto_minmax(120px,220px)_auto] items-center gap-2">
+            <h1 className="min-w-0 truncate text-[20px] font-semibold leading-none tracking-0">{title}</h1>
+            <Button variant="primary" onClick={onAddText} className="h-8 px-2.5">
+              <Plus size={14} /> <span className="spaces-action-label">Text</span>
             </Button>
-            <IconButton label="Delete selected" onClick={onDeleteSelected} disabled={!selectedIds.length}>
-              <Trash2 size={15} />
+            {onCaptureElement ? (
+              <IconButton
+                label={captureElementActive ? "Element picker active" : "Capture element"}
+                onClick={onCaptureElement}
+                className={`h-8 w-8 ${captureElementActive ? "border-[#e4f222] text-[#e4f222]" : ""}`}
+              >
+                <MousePointer2 size={15} />
+              </IconButton>
+            ) : null}
+            <IconButton label="Delete selected" onClick={onDeleteSelected} disabled={!selectedIds.length} className="h-8 w-8">
+              <Trash2 size={14} />
             </IconButton>
-          </div>
-
-          <div className="mt-4 flex items-center gap-2">
-            <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3 top-2.5 text-[#62666d]" size={15} />
-              <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search saved items" className="w-full pl-9" />
+            <div className="relative min-w-0">
+              <Search className="pointer-events-none absolute left-2.5 top-2.5 text-[#8A8F98]" size={14} />
+              <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search saved items" className="h-8 w-full pl-8" />
             </div>
-            <button className="h-9 shrink-0 rounded-md border border-[#24262a] bg-[#151719] px-3 text-[12px] font-medium text-[#d0d6e0]">
+            <button className="h-8 shrink-0 rounded-md border border-[rgba(255,255,255,0.06)] bg-transparent px-2.5 text-[12px] font-medium text-[#8A8F98] hover:bg-[#141416] hover:text-[#F5F6F7]">
               Most recent
             </button>
           </div>
 
-          <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+          <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1">
             <button
-              className={`h-8 shrink-0 rounded-full px-3 text-[12px] font-semibold ${activePlatform === "all" ? "bg-[#f7f8f8] text-[#08090a]" : "bg-[#151719] text-[#8a8f98]"}`}
+              className={`h-7 shrink-0 rounded-full px-3 text-[12px] font-medium ${activePlatform === "all" ? "bg-[#F5F6F7] text-[#0A0A0B]" : "bg-transparent text-[#8A8F98] hover:bg-[#141416] hover:text-[#F5F6F7]"}`}
               onClick={() => setActivePlatform("all")}
             >
               All
@@ -180,7 +205,7 @@ export function BookmarkGallery({
             {platforms.map((platform) => (
               <button
                 key={platform}
-                className={`h-8 shrink-0 rounded-full px-3 text-[12px] font-semibold ${activePlatform === platform ? "bg-[#f7f8f8] text-[#08090a]" : "bg-[#151719] text-[#8a8f98]"}`}
+                className={`h-7 shrink-0 rounded-full px-3 text-[12px] font-medium ${activePlatform === platform ? "bg-[#F5F6F7] text-[#0A0A0B]" : "bg-transparent text-[#8A8F98] hover:bg-[#141416] hover:text-[#F5F6F7]"}`}
                 onClick={() => setActivePlatform(platform)}
               >
                 {platformLabels[platform]}
@@ -189,51 +214,51 @@ export function BookmarkGallery({
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-auto px-4 py-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-3 py-3">
           {items.length === 0 ? (
-            <div className="flex min-h-[360px] items-center justify-center rounded-lg border border-dashed border-[#2b2e33] bg-[#0d0f10] p-6 text-center">
+            <div className="flex min-h-[360px] items-center justify-center rounded-[14px] border border-dashed border-[rgba(255,255,255,0.08)] bg-[#141416] p-6 text-center">
               <div>
-                <div className="mx-auto grid h-12 w-12 place-items-center rounded-md border border-[#2b2e33] bg-[#151719] text-[#e4f222]">
+                <div className="mx-auto grid h-12 w-12 place-items-center rounded-xl border border-[rgba(255,255,255,0.06)] bg-[#1A1B1D] text-[#e4f222]">
                   <Plus size={24} />
                 </div>
-                <h2 className="mt-4 text-[22px] font-semibold">Save anything into this Space</h2>
-                <p className="mt-2 max-w-[280px] text-[13px] leading-6 text-[#8a8f98]">Drag from the page, paste screenshots, or add a text note.</p>
+                <h2 className="mt-4 text-[21px] font-semibold">Save anything into this Space</h2>
+                <p className="mt-2 max-w-[280px] text-[13px] leading-6 text-[#8A8F98]">Drag from the page, paste screenshots, or capture an element.</p>
               </div>
             </div>
           ) : (
-            <div className="columns-1 gap-3 min-[520px]:columns-2 min-[980px]:columns-3">
-              {filtered.map((item) => {
+            <div className="spaces-masonry" style={{ columnWidth: 158, columnGap: 12 }}>
+              {filtered.map((item, index) => {
                 const selected = selectedIds.includes(item.id);
                 return (
                   <article
                     key={item.id}
-                    className={`mb-3 break-inside-avoid overflow-hidden rounded-lg border bg-[#111315] text-[#f7f8f8] shadow-[rgba(0,0,0,0.32)_0px_10px_36px_0px] transition ${
-                      selected ? "border-[#e4f222]" : "border-[#24262a] hover:border-[#35383d]"
+                    className={`group mb-3 inline-block w-full cursor-default break-inside-avoid overflow-hidden rounded-[14px] border bg-[#141416] align-top text-[#F5F6F7] transition ${
+                      selected ? "border-[#e4f222]" : "border-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.12)] hover:bg-[#1A1B1D]"
                     }`}
                     onClick={(event) => onSelect(item.id, event.shiftKey || event.metaKey || event.ctrlKey)}
                   >
-                    <div className="h-[190px] overflow-hidden bg-[#0b0c0d]">
+                    <div className="relative overflow-hidden" style={{ height: tileHeight(item, index) }}>
                       <Thumbnail item={item} />
-                    </div>
-                    <div className="p-3">
-                      <div className="mb-3 flex items-center gap-2">
-                        {item.faviconUrl ? <img src={item.faviconUrl} alt="" className="h-4 w-4 rounded-sm" /> : null}
-                        <PlatformBadge platform={item.platform} />
-                        {item.url ? (
-                          <button
-                            className="ml-auto text-[#8a8f98] hover:text-[#f7f8f8]"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              onOpen?.(item);
-                            }}
-                          >
-                            <ExternalLink size={14} />
-                          </button>
-                        ) : null}
+                      <div className="absolute inset-x-0 bottom-0 bg-[linear-gradient(transparent,rgba(0,0,0,0.82))] p-2 pt-10">
+                        <div className="flex items-center gap-1.5">
+                          {item.faviconUrl ? <img src={item.faviconUrl} alt="" className="h-4 w-4 shrink-0 rounded-sm" /> : null}
+                          <PlatformBadge platform={item.platform} />
+                          <p className="min-w-0 flex-1 truncate text-[11px] font-medium text-[#F5F6F7]">{item.title}</p>
+                          <span className="shrink-0 text-[10px] text-[#8A8F98]">{item.relativeTime}</span>
+                          {item.url ? (
+                            <button
+                              className="hidden shrink-0 text-[#F5F6F7] opacity-80 hover:opacity-100 group-hover:block"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                onOpen?.(item);
+                              }}
+                              title="Open source"
+                            >
+                              <ExternalLink size={13} />
+                            </button>
+                          ) : null}
+                        </div>
                       </div>
-                      <h3 className="line-clamp-2 text-[15px] font-semibold leading-5">{item.title}</h3>
-                      <p className="mt-2 truncate text-[12px] text-[#8a8f98]">{item.sourceDomain}</p>
-                      <p className="mt-1 text-[11px] text-[#62666d]">{item.relativeTime}</p>
                     </div>
                   </article>
                 );

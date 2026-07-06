@@ -1,9 +1,9 @@
-import { ClipboardEvent as ReactClipboardEvent, DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent, useCallback, useMemo, useState } from "react";
+import { ClipboardEvent as ReactClipboardEvent, DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { BookmarkGallery, BookmarkGalleryItem } from "@spaces/ui";
 import { fileToDataUrl, payloadsFromPaste } from "../lib/clipboard";
+import { cardFromPayload } from "../lib/cards";
 import { parseSpacesPayload } from "../lib/dragPayload";
-import { detectPlatform } from "../lib/platform";
-import { domainFromUrl, getPageSource, makeId, nowIso, relativeTime } from "../lib/sourceMetadata";
+import { domainFromUrl, getPageSource, nowIso, relativeTime } from "../lib/sourceMetadata";
 import { DraftPayload, Space, SpaceCard } from "../types/space";
 
 type SpaceCanvasProps = {
@@ -12,41 +12,6 @@ type SpaceCanvasProps = {
   expanded?: boolean;
 };
 
-function defaultSize(type: DraftPayload["type"]) {
-  if (type === "image" || type === "screenshot") return { width: 190, height: 140 };
-  if (type === "link") return { width: 180, height: 132 };
-  if (type === "file" || type === "audio" || type === "video") return { width: 180, height: 118 };
-  return { width: 180, height: 128 };
-}
-
-function cardFromPayload(spaceId: string, payload: DraftPayload): SpaceCard {
-  const pageSource = getPageSource();
-  const sourceUrl = payload.sourceUrl || pageSource.sourceUrl;
-  const size = defaultSize(payload.type);
-  const thumbnailUrl = payload.thumbnailUrl || (payload.type === "image" || payload.type === "screenshot" ? payload.src : pageSource.thumbnailUrl);
-  return {
-    id: makeId("card"),
-    spaceId,
-    type: payload.type,
-    platform: payload.platform || detectPlatform(sourceUrl || payload.url),
-    content: payload.content,
-    src: payload.src,
-    url: payload.url,
-    thumbnailUrl,
-    faviconUrl: payload.faviconUrl || pageSource.faviconUrl,
-    fileName: payload.fileName,
-    fileType: payload.fileType,
-    fileSize: payload.fileSize,
-    width: payload.width || size.width,
-    height: payload.height || size.height,
-    x: payload.x || 0,
-    y: payload.y || 0,
-    sourceUrl,
-    pageTitle: payload.pageTitle || pageSource.pageTitle,
-    createdAt: nowIso(),
-  };
-}
-
 function toGalleryItem(card: SpaceCard): BookmarkGalleryItem {
   return {
     id: card.id,
@@ -54,7 +19,7 @@ function toGalleryItem(card: SpaceCard): BookmarkGalleryItem {
     title: card.pageTitle || card.content || card.fileName || card.url || "Saved item",
     body: card.content,
     url: card.url || card.sourceUrl,
-    thumbnailUrl: card.thumbnailUrl || (card.type === "image" || card.type === "screenshot" ? card.src : undefined),
+    thumbnailUrl: card.thumbnailUrl || (card.type === "image" || card.type === "screenshot" || card.type === "element" ? card.src : undefined),
     faviconUrl: card.faviconUrl,
     platform: card.platform,
     sourceDomain: domainFromUrl(card.sourceUrl || card.url),
@@ -65,6 +30,7 @@ function toGalleryItem(card: SpaceCard): BookmarkGalleryItem {
 export function SpaceCanvas({ space, onChange }: SpaceCanvasProps) {
   const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
   const [dragOver, setDragOver] = useState(false);
+  const [captureElementActive, setCaptureElementActive] = useState(false);
 
   const update = useCallback(
     (next: Space) => onChange({ ...next, updatedAt: nowIso() }),
@@ -136,6 +102,17 @@ export function SpaceCanvas({ space, onChange }: SpaceCanvasProps) {
     if ((event.key === "Delete" || event.key === "Backspace") && selectedCardIds.length) deleteSelection();
   };
 
+  useEffect(() => {
+    const started = () => setCaptureElementActive(true);
+    const ended = () => setCaptureElementActive(false);
+    window.addEventListener("spaces:element-capture-started", started);
+    window.addEventListener("spaces:element-capture-ended", ended);
+    return () => {
+      window.removeEventListener("spaces:element-capture-started", started);
+      window.removeEventListener("spaces:element-capture-ended", ended);
+    };
+  }, []);
+
   return (
     <div
       className="flex min-h-0 flex-1 flex-col outline-none"
@@ -154,7 +131,9 @@ export function SpaceCanvas({ space, onChange }: SpaceCanvasProps) {
         items={galleryItems}
         selectedIds={selectedCardIds}
         dragActive={dragOver}
+        captureElementActive={captureElementActive}
         onAddText={addTextNote}
+        onCaptureElement={() => window.dispatchEvent(new CustomEvent("spaces:start-element-capture"))}
         onDeleteSelected={deleteSelection}
         onSelect={(id, multi) => {
           setSelectedCardIds((ids) => (multi ? (ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]) : [id]));
