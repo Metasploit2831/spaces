@@ -10,11 +10,12 @@ type GroupContainerProps = {
   onSelect: () => void;
   onRename: (title: string) => void;
   onMove: (dx: number, dy: number) => void;
+  onAnalyze: () => void;
   onUngroup: () => void;
   onDelete: () => void;
 };
 
-export function GroupContainer({ group, itemCount, selected, onSelect, onRename, onMove, onUngroup, onDelete }: GroupContainerProps) {
+export function GroupContainer({ group, itemCount, selected, onSelect, onRename, onMove, onAnalyze, onUngroup, onDelete }: GroupContainerProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
 
@@ -69,7 +70,14 @@ export function GroupContainer({ group, itemCount, selected, onSelect, onRename,
         <button className="rounded-md p-1 text-[#8a8f98] hover:bg-[#23252a] hover:text-[#f7f8f8]" onClick={() => setMenuOpen((value) => !value)}>
           <MoreHorizontal size={13} />
         </button>
-        <button className="rounded-md p-1 text-[#62666d]" disabled title="Analyze group">
+        <button
+          className="rounded-md p-1 text-[#8a8f98] hover:bg-[#23252a] hover:text-[#f7f8f8]"
+          title="Analyze group"
+          onClick={() => {
+            onSelect();
+            onAnalyze();
+          }}
+        >
           <Sparkles size={13} />
         </button>
       </div>

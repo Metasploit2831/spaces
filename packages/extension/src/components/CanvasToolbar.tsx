@@ -8,9 +8,10 @@ type CanvasToolbarProps = {
   onGroup: () => void;
   onUngroup: () => void;
   onDelete: () => void;
+  onAnalyze: () => void;
 };
 
-export function CanvasToolbar({ canGroup, hasSelection, onAddText, onGroup, onUngroup, onDelete }: CanvasToolbarProps) {
+export function CanvasToolbar({ canGroup, hasSelection, onAddText, onGroup, onUngroup, onDelete, onAnalyze }: CanvasToolbarProps) {
   return (
     <div className="flex items-center gap-1.5 border-y border-[#23252a] bg-[#08090a] px-3 py-2">
       <IconButton label="Add text note" onClick={onAddText}>
@@ -28,7 +29,7 @@ export function CanvasToolbar({ canGroup, hasSelection, onAddText, onGroup, onUn
       <div className="ml-auto rounded-full border border-[#23252a] bg-[#161718] px-2.5 py-1 text-[11px] font-medium text-[#8a8f98]">
         Paste Cmd + V
       </div>
-      <Button variant="ghost" disabled className="h-8 opacity-45">
+      <Button variant="ghost" disabled={!hasSelection} onClick={onAnalyze} className={`h-8 ${hasSelection ? "" : "opacity-45"}`}>
         <Lightbulb size={14} /> Analyze
       </Button>
     </div>

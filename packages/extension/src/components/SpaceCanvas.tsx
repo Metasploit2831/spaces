@@ -14,11 +14,12 @@ import { fileToDataUrl, payloadsFromPaste } from "../lib/clipboard";
 import { parseSpacesPayload } from "../lib/dragPayload";
 import { computeBoundingBox, normalizeRect, rectsIntersect, Rect } from "../lib/geometry";
 import { getPageSource, makeId, nowIso } from "../lib/sourceMetadata";
+import { analyzeGroup } from "../lib/analyzeGroup";
 import { DraftPayload, Space, SpaceCard, SpaceGroup } from "../types/space";
 import { CanvasToolbar } from "./CanvasToolbar";
 import { CardNode } from "./CardNode";
 import { GroupContainer } from "./GroupContainer";
-import { Menu, MenuItem } from "@spaces/ui";
+import { AnalysisPanel, GroupAnalysis, Menu, MenuItem } from "@spaces/ui";
 
 type SpaceCanvasProps = {
   space: Space;
@@ -64,6 +65,7 @@ export function SpaceCanvas({ space, onChange, expanded = false }: SpaceCanvasPr
   const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
   const [selectionRect, setSelectionRect] = useState<Rect | null>(null);
   const [canvasMenu, setCanvasMenu] = useState<{ x: number; y: number } | null>(null);
+  const [analysis, setAnalysis] = useState<GroupAnalysis | null>(null);
 
   const selectedCards = useMemo(
     () => space.cards.filter((card) => selectedCardIds.includes(card.id)),
@@ -176,6 +178,30 @@ export function SpaceCanvas({ space, onChange, expanded = false }: SpaceCanvasPr
     });
   };
 
+  const analyzeCards = (group: SpaceGroup) => {
+    setAnalysis(analyzeGroup(group, space.cards));
+  };
+
+  const analyzeSelection = () => {
+    const group = selectedGroupId ? space.groups.find((item) => item.id === selectedGroupId) : null;
+    if (group) {
+      analyzeCards(group);
+      return;
+    }
+    if (!selectedCardIds.length) return;
+    analyzeCards({
+      id: "selection",
+      spaceId: space.id,
+      title: selectedCardIds.length === 1 ? "Selected card" : "Current selection",
+      cardIds: selectedCardIds,
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 0,
+      createdAt: nowIso(),
+    });
+  };
+
   const moveCards = (dx: number, dy: number, draggedId: string) => {
     const ids = new Set(selectedCardIds.includes(draggedId) ? selectedCardIds : [draggedId]);
     const nextCards = space.cards.map((card) => (ids.has(card.id) ? { ...card, x: card.x + dx, y: card.y + dy } : card));
@@ -269,6 +295,7 @@ export function SpaceCanvas({ space, onChange, expanded = false }: SpaceCanvasPr
           onGroup={groupSelected}
           onUngroup={ungroupSelected}
           onDelete={deleteSelection}
+          onAnalyze={analyzeSelection}
         />
       ) : null}
 
@@ -323,6 +350,7 @@ export function SpaceCanvas({ space, onChange, expanded = false }: SpaceCanvasPr
               }}
               onRename={(title) => update({ ...space, groups: space.groups.map((item) => (item.id === group.id ? { ...item, title } : item)) })}
               onMove={(dx, dy) => moveGroup(group, dx, dy)}
+              onAnalyze={() => analyzeCards(group)}
               onUngroup={() => {
                 update({ ...space, groups: space.groups.filter((item) => item.id !== group.id) });
                 setSelectedGroupId(null);
@@ -411,6 +439,8 @@ export function SpaceCanvas({ space, onChange, expanded = false }: SpaceCanvasPr
               <MenuItem onClick={() => setSelectedCardIds([])}><Scissors size={13} /> Clear selection</MenuItem>
             </Menu>
           ) : null}
+
+          {analysis ? <AnalysisPanel analysis={analysis} onClose={() => setAnalysis(null)} /> : null}
         </div>
       </div>
     </div>
