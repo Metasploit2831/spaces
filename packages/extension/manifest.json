@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Spaces",
-  "description": "Drag anything. Paste anything. Group anything.",
+  "description": "Save anything. Find it by platform.",
   "version": "0.1.0",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": ["<all_urls>"],

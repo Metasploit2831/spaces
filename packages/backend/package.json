@@ -1,0 +1,9 @@
+{
+  "name": "@spaces/backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "echo \"Supabase backend is SQL/config only\""
+  }
+}

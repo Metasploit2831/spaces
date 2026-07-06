@@ -30,7 +30,7 @@ npx pnpm@10.13.1 install
 npx pnpm@10.13.1 dev
 ```
 
-The demo page renders a realistic webpage with the Spaces sidebar overlaid on the right, plus capture affordances for selected text, images, links, files, and pasted screenshots.
+The demo page renders a realistic webpage with the Spaces sidebar overlaid on the right, plus capture affordances for selected text, images, links, files, and pasted screenshots. Saved items appear in a Gatheros-style platform gallery.
 
 The local demo is still useful for rapid UI development, but the loadable Chrome extension lives in `dist` after `npm run build`.
 
@@ -39,5 +39,5 @@ The local demo is still useful for rapid UI development, but the loadable Chrome
 - Spaces Home with search, saved cards, empty state, add, open, rename, duplicate, and delete.
 - Active Space Canvas with editable title, save state, View Canvas modal, toolbar, paste/drop feedback, and local persistence.
 - Capture methods for text selection, image/link/media hover affordances, local files, and clipboard screenshots.
-- Freeform draggable cards, shift-click multi-select, marquee selection, group, ungroup, group rename, and source metadata.
-- `chrome.storage.local` persistence with `localStorage` fallback for prototype/demo environments.
+- Platform detection from source URLs, thumbnail/favicons where available, and source metadata.
+- `chrome.storage.local` persistence with `localStorage` fallback for prototype/demo environments, plus optional Supabase sync when configured.

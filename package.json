@@ -7,6 +7,11 @@
   "scripts": {
     "dev": "pnpm --filter @spaces/extension dev",
     "build": "pnpm --filter @spaces/extension build",
+    "build:all": "pnpm --filter @spaces/extension build && pnpm --filter @spaces/desktop build",
+    "desktop:dev": "pnpm --filter @spaces/desktop dev",
+    "desktop:build": "pnpm --filter @spaces/desktop build",
+    "tauri:dev": "pnpm --filter @spaces/desktop tauri:dev",
+    "tauri:build": "pnpm --filter @spaces/desktop tauri:build",
     "preview": "pnpm --filter @spaces/extension preview"
   },
   "devDependencies": {

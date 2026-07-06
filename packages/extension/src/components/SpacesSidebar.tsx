@@ -11,12 +11,14 @@ import {
   setActiveSpaceId,
   updateSpace,
 } from "../lib/storage";
+import { loadCloudSpaces, mergeSpaces, onAuthChange, subscribeToCloudSpaces } from "../lib/cloudSync";
 import { nowIso } from "../lib/sourceMetadata";
 import { Space } from "../types/space";
 import { SpaceCanvas } from "./SpaceCanvas";
 import { SpacesHome } from "./SpacesHome";
 import { Button, IconButton } from "@spaces/ui";
 import { ViewCanvasModal } from "./ViewCanvasModal";
+import { AuthStatus } from "./AuthStatus";
 
 type SaveState = "Save" | "Saving..." | "Saved";
 
@@ -28,6 +30,7 @@ export function SpacesSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [syncEmail, setSyncEmail] = useState<string | undefined>();
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const stored = typeof window !== "undefined" ? window.localStorage.getItem("spaces:sidebar-width") : null;
     const width = stored ? Number(stored) : 420;
@@ -63,6 +66,33 @@ export function SpacesSidebar() {
       }
     });
   }, []);
+
+  useEffect(() => {
+    return onAuthChange((user) => {
+      setSyncEmail(user?.email);
+      if (!user) return;
+      void loadCloudSpaces().then(async (remote) => {
+        const local = await getSpaces();
+        const next = mergeSpaces(local, remote);
+        setSpaces(next);
+        await saveSpaces(next);
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    return subscribeToCloudSpaces((remote) => {
+      setSpaces((current) => {
+        const next = mergeSpaces(current, remote);
+        void saveSpaces(next);
+        if (activeSpace) {
+          const remoteActive = next.find((space) => space.id === activeSpace.id);
+          if (remoteActive && remoteActive.updatedAt !== activeSpace.updatedAt) setActiveSpace(remoteActive);
+        }
+        return next;
+      });
+    });
+  }, [activeSpace]);
 
   const activeIsSaved = useMemo(
     () => Boolean(activeSpace && spaces.some((space) => space.id === activeSpace.id)),
@@ -184,7 +214,7 @@ export function SpacesSidebar() {
           {screen === "home" ? (
             <div>
               <h1 className="text-[24px] font-semibold leading-none tracking-[-0.02em] text-[#f7f8f8]">Spaces</h1>
-              <p className="mt-1 text-[11px] font-normal text-[#8a8f98]">Drag anything. Paste anything. Group anything.</p>
+              <p className="mt-1 text-[11px] font-normal text-[#8a8f98]">Save anything. Find it by platform.</p>
             </div>
           ) : activeSpace ? (
             <input
@@ -212,11 +242,13 @@ export function SpacesSidebar() {
           </div>
         </header>
 
+        <AuthStatus email={syncEmail} />
+
         <AnimatePresence mode="wait">
           {screen === "home" ? (
             <motion.div
               key="home"
-              className="flex min-h-0 flex-1 flex-col bg-[#08090a] pt-4"
+              className="flex min-h-0 flex-1 flex-col bg-[#08090a]"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 6 }}

@@ -7,9 +7,20 @@ export function makeId(prefix: string) {
 }
 
 export function getPageSource() {
+  const icon =
+    document.querySelector<HTMLLinkElement>('link[rel~="icon"]')?.href ||
+    document.querySelector<HTMLLinkElement>('link[rel="apple-touch-icon"]')?.href ||
+    `${window.location.origin}/favicon.ico`;
+  const image =
+    document.querySelector<HTMLMetaElement>('meta[property="og:image"]')?.content ||
+    document.querySelector<HTMLMetaElement>('meta[name="twitter:image"]')?.content ||
+    undefined;
+
   return {
     sourceUrl: window.location.href,
     pageTitle: document.title || "Untitled page",
+    thumbnailUrl: image,
+    faviconUrl: icon,
   };
 }
 

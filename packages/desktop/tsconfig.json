@@ -15,8 +15,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
-    "types": ["chrome", "vite/client"]
+    "types": ["vite/client"]
   },
-  "include": ["src", "../ui/src"],
-  "references": []
+  "include": ["src", "../ui/src"]
 }
